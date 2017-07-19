@@ -11,7 +11,7 @@ vignette: >
 
 This vignette illustrates how the parcels data set works. Currently the methods.string package focuses on address explosion and cleaning.
 
-```{r parcels}
+```{r parcels, eval=FALSE}
 # parcels.address
 parcels <- list()
 data.path <- '~/Dropbox/pkg.data/parcels'

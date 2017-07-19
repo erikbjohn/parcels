@@ -25,7 +25,6 @@ if(getRversion() >= "2.15.1")  utils::globalVariables(c("."))
 #'     stringdist
 #'     methods.string
 #'     foreign
-
 address <- function(data.path, fresh=FALSE){
   raw.path <- paste0(data.path, '/raw/')
   clean.path <- paste0(data.path, '/clean/address/')
@@ -178,6 +177,57 @@ address <- function(data.path, fresh=FALSE){
     # parcels.address <- parcels.area[parcels.address]
     save(parcels.address, file=l.path$clean$address)
   }
+  return(parcels.address)
+}
+#' @title address.update
+#'
+#' @description Updates address file with intersected coordinates
+#' @param pkg.data.root dropbox package root
+#' @param parcels.address data.table
+#' @param parcels.address.geocode.new geocoded info spatially intersected
+#' @param parcel.source where it conmes from (points)
+#' @keywords parcels, clean
+#' @export
+#' @import stringr
+#'     data.table
+#'     stringdist
+#'     methods.string
+#'     foreign
+#'     pkg.data.paths
+
+address.update <- function(pkg.data.root, parcels.address, parcels.address.geocode.new, parcel.source='points'){
+  pkg.name <- NULL; street.num <- NULL
+  dt.data.paths <- pkg.data.paths::dt(pkg.data.root)
+  parcels.address.geocode.location <- paste0(dt.data.paths[pkg.name=='parcels']$pkg.root[1],
+                                             '/clean/address/parcels.address.geocode.rdata')
+  parcels.address.location <-  paste0(dt.data.paths[pkg.name=='parcels']$pkg.root[1],
+                                      '/clean/address/parcels.address.rdata')
+  if(missing(parcels.address.geocode.new)) {
+    parcels.address.geocode.new <- parcels.address[FALSE]
+  }
+  # Check if parcels.address.geocode exists
+  if (file.exists(parcels.address.geocode.location)){
+    load(parcels.address.geocode.location)
+  } else {
+    # Create parcels.address.geocode by cloning parcels.address
+    parcels.address.geocode <- parcels.address[FALSE]
+  }
+  cols <- names(parcels.address)[!(names(parcels.address) %in% c('location.street.direction',
+                                                                 'location.street.num'))]
+  parcels.address.geocode.new$location.source <- parcel.source
+  parcels.address.geocode.new$location.type <- 'parcels'
+  parcels.address <- parcels.address[, (cols), with=FALSE]
+  parcels.address.geocode.new <- parcels.address.geocode.new[, (cols), with=FALSE]
+  
+  # Append and collapse parcels.address.geocode.new to parcels.address.geocode
+  parcels.address.list <- list(parcels.address, parcels.address.geocode.new)
+  parcels.address <- rbindlist(parcels.address.list, use.names=TRUE)
+  col.keys <- names(parcels.address)
+  setkeyv(parcels.address, col.keys)
+  parcels.address <- unique(parcels.address)
+  parcels.address <- parcels.address[, street.num:=as.numeric(street.num)]
+  save(parcels.address, file=parcels.address.location)
+  # Save parcels.address.geocode 
   return(parcels.address)
 }
 #' @title shapes
